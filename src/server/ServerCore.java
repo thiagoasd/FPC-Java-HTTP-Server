@@ -35,7 +35,7 @@ public class ServerCore {
 
 			// Respondendo
 			// tem que mandar o "cabecalho" antes
-			String response = "bye";
+			String response = "200, tudo certo";
 			out.println("HTTP/1.1 200 OK");
 			out.println("Content-Type: text/html");
 			out.println("Content-Length: " + response.length());
