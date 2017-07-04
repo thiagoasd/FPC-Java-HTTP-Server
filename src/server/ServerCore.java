@@ -9,23 +9,33 @@ import java.util.Scanner;
 public class ServerCore {
 
 	public static void main(String[] args) {
-		// TODO separar as partes do request e criar um log
+		int port = 2654;
+		// TODO separar as partes do request, criar um log e descobrir como conseguir
+		// fazer com que o reader não de block
 
 		try {
-			ServerSocket socket = new ServerSocket(2654);
-			Socket server = socket.accept();
-			System.out.println("Socket aberto");
 
+			// Cria socket e espera
+			ServerSocket socket = new ServerSocket(port);
+			Socket server = socket.accept();
+			System.out.println("Socket recebeu conexão");
+
+			// Lê até receber o final da mensagem
+			// (toda msg deve acabar com bye)
 			Scanner inc = new Scanner(server.getInputStream());
 			PrintWriter out = new PrintWriter(server.getOutputStream());
-
+			String end = "bye";
 			while (inc.hasNextLine()) {
 				String request = inc.nextLine();
+				if (request.contains(end)) {
+					break;
+				}
 				System.out.println(request);
 			}
 
-			//tem que mandar o "cabecalho" antes
-			String response = "teste";
+			// Respondendo
+			// tem que mandar o "cabecalho" antes
+			String response = "bye";
 			out.println("HTTP/1.1 200 OK");
 			out.println("Content-Type: text/html");
 			out.println("Content-Length: " + response.length());
@@ -34,8 +44,7 @@ public class ServerCore {
 			out.flush();
 			out.println();
 			out.flush();
-			
-			
+
 			out.close();
 			inc.close();
 			socket.close();
