@@ -1,17 +1,24 @@
 package server;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class ServerCore {
 
 	public static void main(String[] args) {
 		int port = 2654;
-		// TODO separar as partes do request, criar um log e descobrir como conseguir
-		// fazer com que o reader não de block
+		// TODO FORMATAR RESPOSTA CORRETINHA
 
 		try {
 
@@ -22,29 +29,64 @@ public class ServerCore {
 
 			// Lê até receber o final da mensagem
 			// (toda msg deve acabar com bye)
-			Scanner inc = new Scanner(server.getInputStream());
+			BufferedReader inc = new BufferedReader(new InputStreamReader(server.getInputStream()));
 			PrintWriter out = new PrintWriter(server.getOutputStream());
-			String end = "bye";
-			while (inc.hasNextLine()) {
-				String request = inc.nextLine();
-				if (request.contains(end)) {
-					break;
+			String req, method, uri, httpversion, headerLine, data = "";
+			req = method = uri = httpversion = headerLine = data;
+			Map<String, String> fields = new HashMap<>();
+
+			if (inc.ready()) {
+
+				// Le a 1 linha da requisicao e a parsa
+				req = inc.readLine(); // requisição
+				String[] temp = req.split(" ");
+				if (temp.length == 3) {
+					method = temp[0];
+					uri = temp[1].substring(1, temp[1].length());
+					httpversion = temp[2];
+				} else {
+					System.err.println("Requisição malfeita");
+					System.exit(1);
 				}
-				System.out.println(request);
+
+				// Checa se tem headers e os poe em um map
+				while (inc.ready() && !(headerLine = inc.readLine()).equals("")) {
+					temp = headerLine.split(": ");
+					fields.put(temp[0], temp[1]);
+				}
+
+				// Checa se tem data e o poe em uma string
+				while (inc.ready()) {
+					data += inc.readLine();
+				}
+
 			}
 
 			// Respondendo
 			// tem que mandar o "cabecalho" antes
-			String response = "200, tudo certo";
-			out.println("HTTP/1.1 200 OK");
-			out.println("Content-Type: text/html");
-			out.println("Content-Length: " + response.length());
-			out.println();
-			out.println(response);
-			out.flush();
-			out.println();
-			out.flush();
 
+			if (method.equals("GET")) {
+				out.println("HTTP/1.1 200 OK");
+				out.println("Content-Type: text/html");
+				BufferedInputStream d = new BufferedInputStream(new FileInputStream(uri));
+				BufferedOutputStream outStream = new BufferedOutputStream(server.getOutputStream());
+				byte buffer[] = new byte[1024];
+				int read;
+				while ((read = d.read(buffer)) != -1) {
+					outStream.write(buffer, 0, read);
+					outStream.flush();
+				}
+				out.flush();
+
+			} else {
+				String response = "200, tudo certo";
+
+				out.println();
+				out.println(response);
+				out.flush();
+				out.println();
+				out.flush();
+			}
 			out.close();
 			inc.close();
 			socket.close();
