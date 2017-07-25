@@ -3,6 +3,7 @@ package server;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -66,20 +67,35 @@ public class ServerCore {
 			// tem que mandar o "cabecalho" antes
 
 			if (method.equals("GET")) {
-				out.println("HTTP/1.1 200 OK");
-				out.println("Content-Type: text/html");
-				BufferedInputStream d = new BufferedInputStream(new FileInputStream(uri));
-				BufferedOutputStream outStream = new BufferedOutputStream(server.getOutputStream());
-				byte buffer[] = new byte[1024];
-				int read;
-				while ((read = d.read(buffer)) != -1) {
-					outStream.write(buffer, 0, read);
-					outStream.flush();
+				System.out.println("MODO GET");
+				File arq = new File(uri);
+
+				if (arq.exists()) {
+					out.println("HTTP/1.1 200 OK");
+					out.println("Content-Type: text/html");
+					out.println("Content-Length: " + arq.length());
+					out.flush();
+					System.out.println(arq.length());
+					BufferedInputStream d = new BufferedInputStream(new FileInputStream(arq));
+					BufferedOutputStream outStream = new BufferedOutputStream(server.getOutputStream());
+					byte buffer[] = new byte[1024];
+					int read;
+					while ((read = d.read(buffer)) != -1) {
+						outStream.write(buffer, 0, read);
+						outStream.flush();
+					}
+
+					out.flush();
+					d.close();
+					outStream.close();
+				} else {
+
+					out.println("HTTP/1.1 404 FILE NOT FOUND");
+					out.flush();
 				}
-				out.flush();
 
 			} else {
-				String response = "200, tudo certo";
+				String response = "200 OK";
 
 				out.println();
 				out.println(response);
