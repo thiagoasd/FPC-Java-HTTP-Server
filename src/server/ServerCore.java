@@ -1,26 +1,21 @@
 package server;
 
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+
 public class ServerCore {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
+		int port = 2654;
+		ServerSocket Ssock = new ServerSocket(port);
+		
+		while (true) {
 
-		int i = 0;
-		while (i < 5) {
-			try {
-
-				int port = 2654;
-				Runnable socketTh = new SocketThread(port);
-				Thread th = new Thread(socketTh);
-				th.start();
-
-				th.join();
-				System.out.println(i);
-			} catch (InterruptedException e) {
-				System.out.println("Thread foi interrompida");
-			}
-
-			i++;
-
+			Socket sock = Ssock.accept();
+			Runnable socketTh = new SocketThread(sock);
+			Thread th = new Thread(socketTh);
+			th.start();
 		}
 	}
 }

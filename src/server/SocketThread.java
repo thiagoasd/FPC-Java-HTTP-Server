@@ -5,78 +5,76 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 public class SocketThread implements Runnable {
 
-	int port;
-	
-	public SocketThread(int port) {
-		this.port = port;
+	Socket sock;
+
+	public SocketThread(Socket sock) {
+		this.sock = sock;
 	}
-	
-	
-	
-	
+
 	@Override
 	public void run() {
+
 		try {
 
 			// Cria socket e espera
-			ServerSocket socket = new ServerSocket(port);
-			Socket server = socket.accept();
-			System.out.println("Socket recebeu conexão");
+			// System.out.println("Socket recebeu conexão");
 
 			// Lê até receber o final da mensagem
 			// (toda msg deve acabar com bye)
-			BufferedReader inc = new BufferedReader(new InputStreamReader(server.getInputStream()));
-			PrintWriter out = new PrintWriter(server.getOutputStream());
+			BufferedReader inc = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+			PrintWriter out = new PrintWriter(sock.getOutputStream());
 			String req, method, uri, data = "";
 			req = method = uri = data;
-				
-				// Le a 1 linha da requisicao e a parsa
-				req = inc.readLine(); // requisição
-				String[] temp = req.split(" ");
-				if (temp.length == 3) {
-					method = temp[0];
-					System.out.println("metodo = " + method);
-					uri = temp[1].substring(1, temp[1].length());
-				} else {
-					System.err.println("Requisição malfeita");
-					System.exit(1);
-				}
 
-				
-				// Checa se tem headers e os poe em um map
-				while (inc.ready() && !(inc.readLine()).equals("")) {
-				}
+			// Le a 1 linha da requisicao e a parsa
+			req = inc.readLine(); // requisição
+			if (req == null) {
+				return;
+			}
+			if (req.compareTo("") == 0) {
+				req = inc.readLine();
+			}
 
-				// Checa se tem data e o poe em uma string
-				while (inc.ready()) {
-				}
+			String[] temp = req.split(" ");
+			if (temp.length == 3) {
+				method = temp[0];
+				uri = temp[1].substring(1, temp[1].length());
+			} else {
+				System.err.println("Requisição malfeita");
+				System.exit(1);
+			}
+
+			// Checa se tem headers e os poe em um map
+			while (inc.ready() && !(inc.readLine()).equals("")) {
+			}
+
+			// Checa se tem data e o poe em uma string
+			while (inc.ready()) {
+			}
 
 			// Respondendo
 			// tem que mandar o "cabecalho" antes
 
 			if (method.equals("GET")) {
-				System.out.println();
-				System.out.println("MODO GET");
 				File arq = new File(uri);
 
 				if (arq.exists()) {
 					out.println("HTTP/1.1 200 OK");
 					out.println("Content-Type: text/html");
 					out.println("Content-Length: " + arq.length());
-					out.flush();
+					if (arq.length() == 0) {
+						System.out.println(req);
+					}
 					out.println();
 					out.flush();
-					System.out.println(arq.length());
 					BufferedInputStream d = new BufferedInputStream(new FileInputStream(arq));
-					BufferedOutputStream outStream = new BufferedOutputStream(server.getOutputStream());
+					BufferedOutputStream outStream = new BufferedOutputStream(sock.getOutputStream());
 					byte buffer[] = new byte[1024];
 					int read;
 					while ((read = d.read(buffer)) != -1) {
@@ -85,6 +83,7 @@ public class SocketThread implements Runnable {
 					}
 
 					out.flush();
+					out.close();
 					d.close();
 					outStream.close();
 				} else {
@@ -104,9 +103,10 @@ public class SocketThread implements Runnable {
 			}
 			out.close();
 			inc.close();
-			socket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (Exception e) {
+			System.out.println("ERRORRRRRR");
+			System.out.println(e.getMessage());
+
 		}
 
 	}
@@ -130,5 +130,4 @@ public class SocketThread implements Runnable {
 		return requestType;
 	}
 
-	}
-
+}
